@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Customer</title>
+</head>
+
+<body>
+
+<h1>
+    {% if customer %}
+        Edit Customer
+    {% else %}
+        Add Customer
+    {% endif %}
+</h1>
+
+<form method="POST"
+      action="{% if customer %}/customers/edit/{{ customer.id }}{% else %}/customers{% endif %}">
+
+    <input
+        type="text"
+        name="name"
+        placeholder="Name"
+        value="{{ customer.name if customer else '' }}"
+        required
+    >
+
+    <br><br>
+
+    <input
+        type="email"
+        name="email"
+        placeholder="Email"
+        value="{{ customer.email if customer else '' }}"
+        required
+    >
+
+    <br><br>
+
+    <input
+        type="text"
+        name="phone"
+        placeholder="Phone"
+        value="{{ customer.phone if customer else '' }}"
+        required
+    >
+
+    <br><br>
+
+    <textarea
+        name="address"
+        placeholder="Address"
+        required
+    >{{ customer.address if customer else '' }}</textarea>
+
+    <br><br>
+
+    <button type="submit">
+        {% if customer %}
+            Update Customer
+        {% else %}
+            Add Customer
+        {% endif %}
+    </button>
+
+</form>
+
+<br>
+
+<a href="/customers">Back</a>
+
+</body>
+</html>

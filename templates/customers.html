@@ -1,0 +1,369 @@
+{% extends "base.html" %}
+
+{% block title %}Customers{% endblock %}
+
+{% block content %}
+
+<div class="page-head">
+    <h2 class="ui header">Customers</h2>
+
+    <button class="ui primary button" id="addBtn">
+        <i class="plus icon"></i>
+        Add Customer
+    </button>
+</div>
+
+
+<table class="ui inverted celled striped table">
+
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Address</th>
+            <th style="width:120px">Actions</th>
+        </tr>
+    </thead>
+
+    <tbody id="customerTableBody">
+        <!-- JavaScript will render customers here -->
+    </tbody>
+
+</table>
+
+
+<!-- Add / Edit Customer Modal -->
+
+<div class="ui modal" id="custModal">
+
+    <div class="header" id="custTitle">
+        Add Customer
+    </div>
+
+    <div class="content">
+
+        <form
+            class="ui form"
+            id="custForm"
+            method="post"
+            action="{{ url_for('save_customer') }}"
+        >
+
+            <input type="hidden" name="id">
+
+            <div class="required field">
+                <label>Name</label>
+
+                <input
+                    type="text"
+                    name="name"
+                    required
+                >
+            </div>
+
+
+            <div class="two fields">
+
+                <div class="required field">
+                    <label>Email</label>
+
+                    <input
+                        type="email"
+                        name="email"
+                        required
+                    >
+                </div>
+
+
+                <div class="required field">
+                    <label>Phone</label>
+
+                    <input
+                        type="text"
+                        name="phone"
+                        required
+                    >
+                </div>
+
+            </div>
+
+
+            <div class="required field">
+
+                <label>Address</label>
+
+                <textarea
+                    name="address"
+                    rows="3"
+                    required
+                ></textarea>
+
+            </div>
+
+
+            <small>
+                <span class="req">*</span>
+                Required field
+            </small>
+
+        </form>
+
+    </div>
+
+
+    <div class="actions">
+
+        <button
+            type="button"
+            class="ui cancel button"
+        >
+            Cancel
+        </button>
+
+        <button
+            type="submit"
+            form="custForm"
+            class="ui green button"
+        >
+            <i class="save icon"></i>
+            Save
+        </button>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<script>
+
+    const $form = $('#custForm');
+
+    const tableBody = document.getElementById(
+        'customerTableBody'
+    );
+
+
+    // -----------------------------------------
+    // Fetch customers from backend API
+    // -----------------------------------------
+
+    async function loadCustomers() {
+
+        try {
+
+            const response = await fetch(
+                '/api/customers'
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    'Failed to fetch customers'
+                );
+            }
+
+            const customers = await response.json();
+
+            renderCustomers(customers);
+
+        } catch (error) {
+
+            console.error(error);
+
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="center aligned">
+                        Failed to load customers.
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+
+    // -----------------------------------------
+    // Render customers using DOM manipulation
+    // -----------------------------------------
+
+    function renderCustomers(customers) {
+
+        tableBody.innerHTML = '';
+
+
+        if (customers.length === 0) {
+
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="center aligned">
+                        No customers yet. Click "Add Customer".
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+
+        customers.forEach(function(customer) {
+
+            const row = document.createElement('tr');
+
+
+            // Name
+            const nameCell = document.createElement('td');
+            nameCell.textContent = customer.name;
+
+
+            // Email
+            const emailCell = document.createElement('td');
+            emailCell.textContent = customer.email;
+
+
+            // Phone
+            const phoneCell = document.createElement('td');
+            phoneCell.textContent = customer.phone;
+
+
+            // Address
+            const addressCell = document.createElement('td');
+            addressCell.textContent = customer.address;
+
+
+            // Actions
+            const actionsCell = document.createElement('td');
+
+
+            // Edit button
+            const editButton = document.createElement('button');
+
+            editButton.className =
+                'ui mini blue icon button';
+
+            editButton.title = 'Edit';
+
+            editButton.innerHTML =
+                '<i class="edit icon"></i>';
+
+
+            editButton.addEventListener(
+                'click',
+                function() {
+
+                    openEditCustomer(customer);
+
+                }
+            );
+
+
+            // Delete button
+            const deleteButton = document.createElement('button');
+
+            deleteButton.className =
+                'ui mini red icon button';
+
+            deleteButton.title = 'Delete';
+
+            deleteButton.innerHTML =
+                '<i class="trash icon"></i>';
+
+
+            deleteButton.addEventListener(
+                'click',
+                function() {
+
+                    confirmDelete(
+                        `/customers/${customer.id}/delete`,
+                        `Delete customer ${customer.name}?`
+                    );
+
+                }
+            );
+
+
+            actionsCell.appendChild(editButton);
+            actionsCell.appendChild(deleteButton);
+
+
+            row.appendChild(nameCell);
+            row.appendChild(emailCell);
+            row.appendChild(phoneCell);
+            row.appendChild(addressCell);
+            row.appendChild(actionsCell);
+
+
+            tableBody.appendChild(row);
+
+        });
+
+    }
+
+
+    // -----------------------------------------
+    // Add Customer
+    // -----------------------------------------
+
+    $('#addBtn').on('click', function() {
+
+        $form[0].reset();
+
+        $form
+            .find('[name=id]')
+            .val('');
+
+        $('#custTitle').text(
+            'Add Customer'
+        );
+
+        $('#custModal').modal('show');
+
+    });
+
+
+    // -----------------------------------------
+    // Edit Customer
+    // -----------------------------------------
+
+    function openEditCustomer(customer) {
+
+        $form
+            .find('[name=id]')
+            .val(customer.id);
+
+        $form
+            .find('[name=name]')
+            .val(customer.name);
+
+        $form
+            .find('[name=email]')
+            .val(customer.email);
+
+        $form
+            .find('[name=phone]')
+            .val(customer.phone);
+
+        $form
+            .find('[name=address]')
+            .val(customer.address);
+
+        $('#custTitle').text(
+            'Edit Customer'
+        );
+
+        $('#custModal').modal('show');
+
+    }
+
+
+    // -----------------------------------------
+    // Load customers when page opens
+    // -----------------------------------------
+
+    loadCustomers();
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<style>
+  .stat-card {
+    display: block; background: #1b1c1d; border: 1px solid #2f3031; border-radius: 12px;
+    padding: 1.4rem 1.5rem; color: #fff !important; transition: transform .15s, border-color .15s;
+  }
+  a.stat-card:hover { transform: translateY(-3px); border-color: #2185d0; }
+  .stat-card .label { color: #9aa0a6; font-size: 1rem; margin-bottom: .4rem; }
+  .stat-card .value { font-size: 2.4rem; font-weight: 700; line-height: 1.1; }
+  .stat-card .icon-box {
+    float: right; width: 46px; height: 46px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; font-size: 1.3rem;
+  }
+  .c-blue   { background: rgba(33,133,208,.18); color: #4da3ff; }
+  .c-green  { background: rgba(33,186,69,.18);  color: #45d36b; }
+  .c-orange { background: rgba(242,113,28,.18); color: #ff9a4d; }
+  .c-purple { background: rgba(163,51,200,.18); color: #cf78ee; }
+  .stat-card .icon-box i.icon { margin: 0; }
+</style>
+
+<div class="page-head">
+  <h2 class="ui header">Dashboard</h2>
+</div>
+
+<div class="ui four stackable cards" style="margin-bottom:1rem">
+  <a class="stat-card" href="{{ url_for('customers') }}" style="margin:.5em">
+    <div class="icon-box c-blue"><i class="users icon"></i></div>
+    <div class="label">Customers</div>
+    <div class="value">{{ customer_count }}</div>
+  </a>
+  <a class="stat-card" href="{{ url_for('items') }}" style="margin:.5em">
+    <div class="icon-box c-green"><i class="cubes icon"></i></div>
+    <div class="label">Items</div>
+    <div class="value">{{ item_count }}</div>
+  </a>
+  <a class="stat-card" href="{{ url_for('invoices') }}" style="margin:.5em">
+    <div class="icon-box c-orange"><i class="file alternate outline icon"></i></div>
+    <div class="label">Invoices</div>
+    <div class="value">{{ invoice_count }}</div>
+  </a>
+  <div class="stat-card" style="margin:.5em">
+    <div class="icon-box c-purple"><i class="rupee sign icon"></i></div>
+    <div class="label">Total Amount</div>
+    <div class="value">{{ currency }}{{ "%.2f"|format(revenue) }}</div>
+  </div>
+</div>
+
+<h3 class="ui header" style="margin-top:2rem">Recent Invoices</h3>
+<table class="ui inverted celled striped table">
+  <thead><tr><th>#</th><th>Customer</th><th>Date</th><th>Total</th></tr></thead>
+  <tbody>
+  {% for inv in recent %}
+    <tr>
+      <td>{{ inv.number }}</td>
+      <td>{{ inv.customer.name }}</td>
+      <td>{{ inv.date }}</td>
+      <td>{{ currency }}{{ "%.2f"|format(inv.total) }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="4" class="center aligned">No invoices yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

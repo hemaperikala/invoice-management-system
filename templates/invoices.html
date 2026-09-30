@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}Invoices{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h2 class="ui header">Invoices</h2>
+  <button class="ui primary button {{ 'disabled' if not customers or not items }}" id="addBtn">
+    <i class="plus icon"></i> New Invoice</button>
+</div>
+
+{% if not customers or not items %}
+  <div class="ui warning message">Add at least one <a href="{{ url_for('customers') }}">customer</a>
+  and one <a href="{{ url_for('items') }}">item</a> before creating an invoice.</div>
+{% endif %}
+
+<table class="ui inverted celled striped table">
+  <thead><tr><th>#</th><th>Customer</th><th>Date</th><th>Lines</th><th>Total</th><th style="width:170px">Actions</th></tr></thead>
+  <tbody>
+  {% for inv in invoices %}
+    <tr>
+      <td>{{ inv.number }}</td>
+      <td>{{ inv.customer.name }}</td>
+      <td>{{ inv.date }}</td>
+      <td>{{ inv.lines.count() }}</td>
+      <td>{{ currency }}{{ "%.2f"|format(inv.total) }}</td>
+      <td>
+        <a class="ui mini green icon button" title="Download PDF" href="{{ url_for('download_invoice', id=inv.id) }}">
+          <i class="download icon"></i></a>
+        <button class="ui mini blue icon button edit-btn" title="Edit" data-id="{{ inv.id }}">
+          <i class="edit icon"></i></button>
+        <button class="ui mini red icon button" title="Delete"
+                onclick="confirmDelete('{{ url_for('delete_invoice', id=inv.id) }}', 'Delete invoice {{ inv.number }}?')">
+          <i class="trash icon"></i></button>
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6" class="center aligned">No invoices yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<!-- Create / Edit invoice dialog -->
+<div class="ui modal" id="invModal">
+  <div class="header" id="invTitle">New Invoice</div>
+  <div class="scrolling content">
+    <form class="ui form" id="invForm" method="post" action="{{ url_for('save_invoice') }}">
+      <input type="hidden" name="id">
+      <div class="two fields">
+        <div class="required field">
+          <label>Customer</label>
+          <select name="customer" required>
+            {% for c in customers %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="required field"><label>Date</label><input type="date" name="date" required></div>
+      </div>
+      <div class="field"><label>Notes</label><textarea name="notes" rows="2"></textarea></div>
+
+      <h4 class="ui dividing header">Items</h4>
+      <table class="ui very basic compact inverted table">
+        <thead><tr>
+          <th style="width:55%">Item <span class="req">*</span></th>
+          <th>Qty <span class="req">*</span></th>
+          <th>Total</th><th></th>
+        </tr></thead>
+        <tbody id="lines"></tbody>
+      </table>
+      <button type="button" class="ui small button" id="addLine"><i class="plus icon"></i> Add item</button>
+      <h3 class="ui right aligned header">Grand total: <span id="grand"></span></h3>
+      <small><span class="req">*</span> Required field</small>
+    </form>
+  </div>
+  <div class="actions">
+    <button type="button" class="ui cancel button">Cancel</button>
+    <button type="submit" form="invForm" class="ui green button"><i class="save icon"></i> Save</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const ITEMS = {{ items_json|tojson }};
+  const INVOICES = {{ invoices_json|tojson }};
+  const CUR = "{{ currency }}";
+  const TODAY = "{{ today }}";
+  const $form = $('#invForm');
+
+  const priceOf = id => { const it = ITEMS.find(i => i.id == id); return it ? it.price : 0; };
+
+  function addLine(itemId, qty) {
+    const $sel = $('<select name="item_id" required>');
+    ITEMS.forEach(i => $sel.append(
+      $('<option>').val(i.id).text(i.name + ' (' + CUR + i.price.toFixed(2) + ')')));
+    if (itemId) $sel.val(itemId);
+
+    const $qty = $('<input type="number" name="quantity" min="1" required>').val(qty || 1);
+    const $rm = $('<button type="button" class="ui mini red icon button remove-line"><i class="trash icon"></i></button>');
+
+    $('<tr>').append(
+      $('<td>').append($sel),
+      $('<td>').append($qty),
+      $('<td class="line-total">'),
+      $('<td>').append($rm)
+    ).appendTo('#lines');
+    recalc();
+  }
+
+  function recalc() {
+    let grand = 0;
+    $('#lines tr').each(function () {
+      const total = priceOf($(this).find('select').val()) * (parseInt($(this).find('input').val()) || 0);
+      $(this).find('.line-total').text(CUR + total.toFixed(2));
+      grand += total;
+    });
+    $('#grand').text(CUR + grand.toFixed(2));
+  }
+
+  $('#lines').on('input change', 'select, input', recalc);
+  $('#lines').on('click', '.remove-line', function () {
+    $(this).closest('tr').remove();
+    recalc();
+  });
+  $('#addLine').on('click', () => addLine());
+
+  // New invoice
+  $('#addBtn').on('click', function () {
+    $form[0].reset();
+    $form.find('[name=id]').val('');
+    $form.find('[name=date]').val(TODAY);
+    $('#lines').empty();
+    addLine();
+    $('#invTitle').text('New Invoice');
+    $('#invModal').modal('show');
+  });
+
+  // Edit invoice
+  $('.edit-btn').on('click', function () {
+    const id = $(this).attr('data-id');
+    const inv = INVOICES[id];
+    $form[0].reset();
+    $form.find('[name=id]').val(id);
+    $form.find('[name=customer]').val(inv.customer);
+    $form.find('[name=date]').val(inv.date);
+    $form.find('[name=notes]').val(inv.notes);
+    $('#lines').empty();
+    inv.lines.forEach(l => addLine(l.item, l.quantity));
+    $('#invTitle').text('Edit Invoice');
+    $('#invModal').modal('show');
+  });
+</script>
+{% endblock %}

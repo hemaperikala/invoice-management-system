@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Items{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <h2 class="ui header">Items</h2>
+  <button class="ui primary button" id="addBtn"><i class="plus icon"></i> Add Item</button>
+</div>
+
+<table class="ui inverted celled striped table">
+  <thead><tr><th>Name</th><th>Description</th><th>Price</th><th style="width:120px">Actions</th></tr></thead>
+  <tbody>
+  {% for i in items %}
+    <tr>
+      <td>{{ i.name }}</td>
+      <td>{{ i.description }}</td>
+      <td>{{ currency }}{{ "%.2f"|format(i.price) }}</td>
+      <td>
+        <button class="ui mini blue icon button edit-btn" title="Edit"
+                data-id="{{ i.id }}" data-name="{{ i.name }}"
+                data-description="{{ i.description }}" data-price="{{ i.price }}">
+          <i class="edit icon"></i></button>
+        <button class="ui mini red icon button" title="Delete"
+                onclick="confirmDelete('{{ url_for('delete_item', id=i.id) }}', 'Delete item {{ i.name|e }}?')">
+          <i class="trash icon"></i></button>
+      </td>
+    </tr>
+  {% else %}
+    <tr><td colspan="4" class="center aligned">No items yet. Click "Add Item".</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<div class="ui modal" id="itemModal">
+  <div class="header" id="itemTitle">Add Item</div>
+  <div class="content">
+    <form class="ui form" id="itemForm" method="post" action="{{ url_for('save_item') }}">
+      <input type="hidden" name="id">
+      <div class="required field"><label>Name</label><input type="text" name="name" required></div>
+      <div class="field"><label>Description</label><input type="text" name="description"></div>
+      <div class="required field"><label>Price</label><input type="number" name="price" step="0.01" min="0" required></div>
+      <small><span class="req">*</span> Required field</small>
+    </form>
+  </div>
+  <div class="actions">
+    <button type="button" class="ui cancel button">Cancel</button>
+    <button type="submit" form="itemForm" class="ui green button"><i class="save icon"></i> Save</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const $form = $('#itemForm');
+
+  $('#addBtn').on('click', function () {
+    $form[0].reset();
+    $form.find('[name=id]').val('');
+    $('#itemTitle').text('Add Item');
+    $('#itemModal').modal('show');
+  });
+
+  $('.edit-btn').on('click', function () {
+    const b = $(this);
+    $form.find('[name=id]').val(b.attr('data-id'));
+    $form.find('[name=name]').val(b.attr('data-name'));
+    $form.find('[name=description]').val(b.attr('data-description'));
+    $form.find('[name=price]').val(b.attr('data-price'));
+    $('#itemTitle').text('Edit Item');
+    $('#itemModal').modal('show');
+  });
+</script>
+{% endblock %}
