@@ -76,8 +76,6 @@ def dashboard():
 
 @app.route("/customers")
 def customers():
-    # The page is now rendered without customer data.
-    # JavaScript will fetch the data using /api/customers.
     return render_template("customers.html")
 
 
@@ -302,8 +300,6 @@ def save_invoice():
             invoice.notes = notes
             invoice.save()
 
-            # Remember old prices so editing doesn't
-            # change prices of existing invoice lines.
             old_prices = {
                 l.item_id: l.price
                 for l in invoice.lines
